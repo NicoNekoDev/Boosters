@@ -38,7 +38,7 @@ class BoostersPlugin : LibreforgePlugin() {
     }
 
     override fun handleReload() {
-        this.scheduler.runTimer(1, 1) {
+        this.scheduler.runTaskTimer(1, 1) {
             for (booster in Boosters.values()) {
                 if (booster.active == null) {
                     continue
@@ -57,7 +57,11 @@ class BoostersPlugin : LibreforgePlugin() {
                         )
                     }
 
-                    Bukkit.getOnlinePlayers().forEach { booster.expiryEffects?.trigger(it.toDispatcher()) }
+                    Bukkit.getOnlinePlayers().forEach {
+                        this.scheduler.runTask(it) { // folia issue
+                            booster.expiryEffects?.trigger(it.toDispatcher())
+                        }
+                    }
 
                     Bukkit.getServer().expireBooster(booster)
                 }
