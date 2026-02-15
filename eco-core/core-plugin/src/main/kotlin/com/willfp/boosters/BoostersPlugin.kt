@@ -65,7 +65,7 @@ class BoostersPlugin : LibreforgePlugin() {
         }
 
         // Just run it later enough
-        this.scheduler.runLater(3) {
+        this.scheduler.runTaskLater(3) {
             Bukkit.getServer().scanForBoosters()
         }
     }
