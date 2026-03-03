@@ -6,6 +6,7 @@ import com.willfp.boosters.boosters.expireBooster
 import com.willfp.boosters.boosters.scanForBoosters
 import com.willfp.boosters.commands.CommandBoosters
 import com.willfp.boosters.libreforge.ConditionIsBoosterActive
+import com.willfp.eco.core.Prerequisite
 import com.willfp.eco.core.command.impl.PluginCommand
 import com.willfp.libreforge.SimpleProvidedHolder
 import com.willfp.libreforge.conditions.Conditions
@@ -14,6 +15,7 @@ import com.willfp.libreforge.loader.configs.ConfigCategory
 import com.willfp.libreforge.registerGenericHolderProvider
 import com.willfp.libreforge.toDispatcher
 import org.bukkit.Bukkit
+import org.bukkit.Sound
 
 internal lateinit var plugin: BoostersPlugin
     private set
@@ -38,7 +40,7 @@ class BoostersPlugin : LibreforgePlugin() {
     }
 
     override fun handleReload() {
-        this.scheduler.runTaskTimer(1, 1) {
+        this.scheduler.runTaskTimer(20L, 20L) {
             for (booster in Boosters.values()) {
                 if (booster.active == null) {
                     continue
@@ -57,10 +59,21 @@ class BoostersPlugin : LibreforgePlugin() {
                         )
                     }
 
-                    Bukkit.getOnlinePlayers().forEach {
-                        this.scheduler.runTask(it) { // folia issue
-                            booster.expiryEffects?.trigger(it.toDispatcher())
+                    Bukkit.getOnlinePlayers().forEach { player ->
+                        val runnable = Runnable {
+                            booster.expiryEffects?.trigger(player.toDispatcher())
+
+                            player.playSound(
+                                player.location,
+                                Sound.ENTITY_ENDER_DRAGON_DEATH,
+                                2f,
+                                0.9f
+                            )
                         }
+                        if (Prerequisite.HAS_FOLIA.isMet)
+                            this.scheduler.runTask(player, runnable)
+                        else
+                            runnable.run()
                     }
 
                     Bukkit.getServer().expireBooster(booster)
