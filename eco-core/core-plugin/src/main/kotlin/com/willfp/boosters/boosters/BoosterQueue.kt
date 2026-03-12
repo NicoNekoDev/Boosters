@@ -88,7 +88,7 @@ object BoosterQueue {
 
     fun deserializeQueue(config: Config) {
         for (key in config.getKeys(false)) {
-            val boosterStrings = config.getStrings(key) ?: continue
+            val boosterStrings = config.getStrings(key)
             val boosters = boosterStrings.mapNotNull {
                 val split = it.split("__")
                 val booster = Boosters.getByID(split[0]) ?: return@mapNotNull null

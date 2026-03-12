@@ -5,9 +5,6 @@ import com.willfp.boosters.activateBoosterConsole
 import com.willfp.boosters.boosters.BoosterActivationResult
 import com.willfp.boosters.boosters.Boosters
 import com.willfp.boosters.plugin
-import com.willfp.boosters.increaseBooster
-import com.willfp.boosters.incrementBoosterConsole
-import com.willfp.boosters.plugin
 import com.willfp.eco.core.command.impl.Subcommand
 import org.bukkit.Bukkit
 import org.bukkit.command.CommandSender
@@ -45,9 +42,10 @@ object CommandActivate : Subcommand(
             result = player.activateBooster(booster)
         }
 
-        sender.sendMessage(plugin.langYml.getMessage(result.result.langString)
-            .replace("%booster%", booster.name)
-            .replace("%duration%", booster.getFormattedTimeLeft(result.duration.toInt() / 20))
+        sender.sendMessage(
+            plugin.langYml.getMessage(result.result.langString)
+                .replace("%booster%", booster.name)
+                .replace("%duration%", booster.getFormattedTimeLeft(result.duration.toInt() / 20))
         )
     }
 

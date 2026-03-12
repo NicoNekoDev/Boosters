@@ -1,11 +1,9 @@
-package com.willfp.boosters
+package com.willfp.boosters.boosters
 
-import com.willfp.boosters.boosters.Booster
-import com.willfp.boosters.boosters.activeBoosters
 import org.bukkit.Bukkit
 import org.bukkit.boss.BossBar
 
-class BoosterBossBarManager {
+object BoosterBossBar {
     private val bars = mutableMapOf<Booster, BossBar>()
 
     fun render() {
@@ -67,4 +65,3 @@ class BoosterBossBarManager {
         bars.clear()
     }
 }
-

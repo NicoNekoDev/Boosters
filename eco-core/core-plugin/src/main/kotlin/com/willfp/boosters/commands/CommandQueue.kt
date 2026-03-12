@@ -10,11 +10,11 @@ import org.bukkit.entity.Player
 import org.bukkit.util.StringUtil
 
 object CommandQueue : Subcommand(
-        plugin,
-        "queue",
-        "boosters.command.queue",
-        false
-    ) {
+    plugin,
+    "queue",
+    "boosters.command.queue",
+    false
+) {
 
     override fun onExecute(sender: CommandSender, args: List<String>) {
         if (args.isEmpty()) {
@@ -41,8 +41,10 @@ object CommandQueue : Subcommand(
                     resultingMessage.add(
                         s.replace("%number%", i.toString())
                             .replace("%booster%", booster.booster.name)
-                            .replace("%time%", booster.booster
-                                .getFormattedTimeLeft(booster.duration / 20))
+                            .replace(
+                                "%time%", booster.booster
+                                    .getFormattedTimeLeft(booster.duration / 20)
+                            )
                             .replace("%activator%", booster.getActivatorName())
                             .replace("%category%", category)
                             .formatEco(sender as? Player, true)
@@ -50,8 +52,10 @@ object CommandQueue : Subcommand(
                     i++
                 }
             } else {
-                resultingMessage.add(s.replace("%category%", category)
-                    .formatEco(sender as? Player, true))
+                resultingMessage.add(
+                    s.replace("%category%", category)
+                        .formatEco(sender as? Player, true)
+                )
             }
         }
 

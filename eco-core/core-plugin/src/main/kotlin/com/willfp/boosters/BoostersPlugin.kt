@@ -1,5 +1,6 @@
 package com.willfp.boosters
 
+import com.willfp.boosters.boosters.BoosterBossBar
 import com.willfp.boosters.boosters.BoosterQueue
 import com.willfp.boosters.boosters.Boosters
 import com.willfp.boosters.boosters.activeBoosters
@@ -26,8 +27,6 @@ class BoostersPlugin : LibreforgePlugin() {
         plugin = this
     }
 
-    private val bossBarManager = BoosterBossBarManager()
-
     override fun loadConfigCategories(): List<ConfigCategory> {
         return listOf(
             Boosters
@@ -47,7 +46,7 @@ class BoostersPlugin : LibreforgePlugin() {
     @Suppress("DEPRECATION")
     override fun handleReload() {
         BoosterQueue.saveQueue()
-        bossBarManager.clearAll()
+        BoosterBossBar.clearAll()
         BoosterQueue.loadQueue()
         this.scheduler.runTaskTimer(20L, 20L) {
             for (booster in Boosters.values()) {
@@ -80,7 +79,7 @@ class BoostersPlugin : LibreforgePlugin() {
                             runnable.run()
                     }
 
-                    bossBarManager.clearFor(booster)
+                    BoosterBossBar.clearFor(booster)
                     Bukkit.getServer().expireBooster(booster)
 
                     // Check the queue
@@ -91,29 +90,33 @@ class BoostersPlugin : LibreforgePlugin() {
                         val activator = queued.activator
 
                         if (activator == serverUUID) {
-                            Bukkit.getServer().activateQueuedBoosterConsole(queued.booster,
-                                queued.duration.toLong())
+                            Bukkit.getServer().activateQueuedBoosterConsole(
+                                queued.booster,
+                                queued.duration.toLong()
+                            )
                         } else {
                             val player = Bukkit.getOfflinePlayer(activator)
-                            player.activateQueuedBooster(queued.booster,
-                                queued.duration.toLong())
+                            player.activateQueuedBooster(
+                                queued.booster,
+                                queued.duration.toLong()
+                            )
                         }
                     }
                 }
             }
 
-            bossBarManager.render()
+            BoosterBossBar.render()
         }
 
         // Just run it later enough
         this.scheduler.runTaskLater(3) {
             Bukkit.getServer().scanForBoosters()
-            bossBarManager.render()
+            BoosterBossBar.render()
         }
     }
 
     override fun handleDisable() {
-        bossBarManager.clearAll()
+        BoosterBossBar.clearAll()
         BoosterQueue.saveQueue()
     }
 

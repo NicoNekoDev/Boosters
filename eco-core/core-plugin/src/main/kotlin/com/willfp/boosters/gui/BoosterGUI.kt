@@ -31,9 +31,11 @@ object BoosterGUI {
                     .replace("%duration%", booster.getFormattedTimeLeft())
             )
 
-            if (activationResult.result in listOf(ActivationResult.DENIED_CONDITIONS,
+            if (activationResult.result in listOf(
+                    ActivationResult.DENIED_CONDITIONS,
                     ActivationResult.INSUFFICIENT_AMOUNT
-                )) {
+                )
+            ) {
                 player.playSound(
                     player.location,
                     Sound.BLOCK_NOTE_BLOCK_BASS,

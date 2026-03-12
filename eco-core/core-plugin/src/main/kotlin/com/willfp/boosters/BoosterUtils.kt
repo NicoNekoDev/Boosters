@@ -41,7 +41,7 @@ val OfflinePlayer.boosters: List<Booster>
         return found
     }
 
-val serverUUID = UUID.fromString("0000fff-0000-0000-0000-000000000000")
+val serverUUID: UUID = UUID.fromString("0000fff-0000-0000-0000-000000000000")
 
 fun OfflinePlayer.getAmountOfBooster(booster: Booster): Int {
     return this.profile.read(booster.ownedDataKey)
