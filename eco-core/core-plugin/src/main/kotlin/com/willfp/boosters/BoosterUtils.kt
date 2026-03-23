@@ -11,6 +11,8 @@ import com.willfp.boosters.boosters.Boosters
 import com.willfp.boosters.boosters.activateBooster
 import com.willfp.boosters.boosters.activeBoosters
 import com.willfp.boosters.boosters.increaseBooster
+import com.willfp.eco.core.data.keys.PersistentDataKey
+import com.willfp.eco.core.data.keys.PersistentDataKeyType
 import com.willfp.eco.core.Prerequisite
 import com.willfp.eco.core.data.profile
 import com.willfp.eco.core.sound.PlayableSound
@@ -26,6 +28,12 @@ import org.bukkit.OfflinePlayer
 import org.bukkit.Server
 import org.bukkit.entity.Player
 import java.util.UUID
+
+private val bossBarVisibilityDataKey = PersistentDataKey(
+    plugin.namespacedKeyFactory.create("bossbar-visible"),
+    PersistentDataKeyType.INT,
+    1
+)
 
 val OfflinePlayer.boosters: List<Booster>
     get() {
@@ -43,6 +51,13 @@ val OfflinePlayer.boosters: List<Booster>
 
 val serverUUID: UUID = UUID.fromString("0000fff-0000-0000-0000-000000000000")
 
+fun Booster.runExpiryEffects() {
+    Bukkit.getOnlinePlayers().forEach { player ->
+        this.expiryEffects?.trigger(player.toDispatcher())
+        expireSound?.playTo(player)
+    }
+}
+
 fun OfflinePlayer.getAmountOfBooster(booster: Booster): Int {
     return this.profile.read(booster.ownedDataKey)
 }
@@ -55,12 +70,23 @@ fun OfflinePlayer.incrementBoosters(booster: Booster, amount: Int) {
     this.setAmountOfBooster(booster, this.getAmountOfBooster(booster) + amount)
 }
 
-@Suppress("DEPRECATION")
-fun Server.activateBoosterConsole(booster: Booster): BoosterActivationResult {
-    val consoleName = plugin.langYml
-        .getMessage("console-displayname")
-        .formatEco(formatPlaceholders = false)
+val consoleName = plugin.langYml
+    .getFormattedString("console-displayname")
+    .formatEco(formatPlaceholders = false)
 
+val activateSound by lazy {
+    PlayableSound.create(plugin.configYml.getSubsection("sounds.activate"))
+}
+
+val incrementSound by lazy {
+    PlayableSound.create(plugin.configYml.getSubsection("sounds.increment"))
+}
+
+val expireSound by lazy {
+    PlayableSound.create(plugin.configYml.getSubsection("sounds.expire"))
+}
+
+fun Server.activateBoosterConsole(booster: Booster): BoosterActivationResult {
     var effects: Chain?
     var status: ActivationResult
     var newTime = booster.duration.toLong()
@@ -107,40 +133,18 @@ fun Server.activateBoosterConsole(booster: Booster): BoosterActivationResult {
 
     when (status) {
         ActivationResult.ACTIVATED -> {
-            for (activationCommand in booster.activationCommands) {
-                Bukkit.dispatchCommand(
-                    Bukkit.getConsoleSender(),
-                    activationCommand.replace("%player%", consoleName)
-                )
-            }
-
-            for (activationMessage in booster.getActivationMessages(null)) {
-                Bukkit.broadcastMessage(activationMessage)
-            }
-
             this.activateBooster(ActivatedBooster(booster, null))
 
             for (player in Bukkit.getOnlinePlayers()) {
-                PlayableSound.create(plugin.configYml.getSubsection("sounds.activate"))?.playTo(player)
+                activateSound?.playTo(player)
             }
         }
 
         ActivationResult.MERGED -> {
-            for (incrementMessage in booster.getIncrementMessage(null)) {
-                Bukkit.broadcastMessage(incrementMessage)
-            }
-
-            for (incrementCommand in booster.incrementCommands) {
-                Bukkit.dispatchCommand(
-                    Bukkit.getConsoleSender(),
-                    incrementCommand.replace("%player%", consoleName)
-                )
-            }
-
             Bukkit.getServer().increaseBooster(booster)
 
             for (player in Bukkit.getOnlinePlayers()) {
-                PlayableSound.create(plugin.configYml.getSubsection("sounds.increment"))?.playTo(player)
+                incrementSound?.playTo(player)
             }
         }
 
@@ -150,12 +154,7 @@ fun Server.activateBoosterConsole(booster: Booster): BoosterActivationResult {
     return BoosterActivationResult(status, newTime)
 }
 
-@Suppress("DEPRECATION")
 fun Server.incrementBoosterConsole(booster: Booster) {
-    val consoleName = plugin.langYml
-        .getMessage("console-displayname")
-        .formatEco(formatPlaceholders = false)
-
     Bukkit.getOnlinePlayers().forEach { target ->
         val runnable = Runnable {
             booster.incrementEffects?.trigger(
@@ -170,25 +169,13 @@ fun Server.incrementBoosterConsole(booster: Booster) {
             runnable.run()
     }
 
-    for (incrementCommand in booster.incrementCommands) {
-        Bukkit.dispatchCommand(
-            Bukkit.getConsoleSender(),
-            incrementCommand.replace("%player%", consoleName)
-        )
-    }
-
-    for (incrementMessage in booster.getIncrementMessage(null)) {
-        Bukkit.broadcastMessage(incrementMessage)
-    }
-
     Bukkit.getServer().increaseBooster(booster)
 
     for (player in Bukkit.getOnlinePlayers()) {
-        PlayableSound.create(plugin.configYml.getSubsection("sounds.increment"))?.playTo(player)
+        incrementSound?.playTo(player)
     }
 }
 
-@Suppress("DEPRECATION")
 fun Player.activateBooster(booster: Booster): BoosterActivationResult {
     val amount = this.getAmountOfBooster(booster)
 
@@ -232,35 +219,17 @@ fun Player.activateBooster(booster: Booster): BoosterActivationResult {
     }
 
     if (status == ActivationResult.ACTIVATED) {
-        for (activationMessage in booster.getActivationMessages(this)) {
-            Bukkit.broadcastMessage(activationMessage)
-        }
-
-        for (activationCommand in booster.activationCommands) {
-            Bukkit.dispatchCommand(
-                Bukkit.getConsoleSender(),
-                activationCommand.replace("%player%", this.name)
-            )
-        }
-
         Bukkit.getServer().activateBooster(ActivatedBooster(booster, this.uniqueId))
 
         for (player in Bukkit.getOnlinePlayers()) {
-            PlayableSound.create(plugin.configYml.getSubsection("sounds.activate"))?.playTo(player)
+            activateSound?.playTo(player)
         }
     } else if (status == ActivationResult.MERGED) {
-        for (incrementMessage in booster.getIncrementMessage(this)) {
-            Bukkit.broadcastMessage(incrementMessage)
-        }
-
-        for (incrementCommand in booster.incrementCommands) {
-            Bukkit.dispatchCommand(
-                Bukkit.getConsoleSender(),
-                incrementCommand.replace("%player%", this.name)
-            )
-        }
-
         Bukkit.getServer().increaseBooster(booster)
+
+        for (player in Bukkit.getOnlinePlayers()) {
+            incrementSound?.playTo(player)
+        }
     }
 
     if (effects != null) {
@@ -275,40 +244,12 @@ fun Player.activateBooster(booster: Booster): BoosterActivationResult {
         }
     }
 
-    Bukkit.getServer().increaseBooster(booster)
-
-    for (incrementMessage in booster.getIncrementMessage(this)) {
-        Bukkit.broadcastMessage(incrementMessage)
-    }
-
-    @Suppress("DEPRECATION")
-    for (incrementCommand in booster.incrementCommands) {
-        Bukkit.dispatchCommand(
-            Bukkit.getConsoleSender(),
-            incrementCommand.replace("%player%", this.name)
-        )
-    }
 
     return BoosterActivationResult(status, newTime)
 }
 
-@Suppress("DEPRECATION")
 fun OfflinePlayer.activateQueuedBooster(booster: Booster, time: Long) {
     val player = this.player
-
-    if (player != null) {
-        for (activationMessage in booster.getActivationMessages(player)) {
-            @Suppress("DEPRECATION")
-            Bukkit.broadcastMessage(activationMessage)
-        }
-
-        for (activationCommand in booster.activationCommands) {
-            Bukkit.dispatchCommand(
-                Bukkit.getConsoleSender(),
-                activationCommand.replace("%player%", player.name)
-            )
-        }
-    }
 
     if (booster.activationEffects != null) {
         Bukkit.getOnlinePlayers().forEach { target ->
@@ -332,28 +273,11 @@ fun OfflinePlayer.activateQueuedBooster(booster: Booster, time: Long) {
     )
 
     for (player in Bukkit.getOnlinePlayers()) {
-        PlayableSound.create(plugin.configYml.getSubsection("sounds.activate"))?.playTo(player)
+        activateSound?.playTo(player)
     }
 }
 
-@Suppress("DEPRECATION")
 fun Server.activateQueuedBoosterConsole(booster: Booster, time: Long) {
-    val consoleName = plugin.langYml
-        .getMessage("console-displayname")
-        .formatEco(formatPlaceholders = false)
-
-    for (activationMessage in booster.getActivationMessages(null)) {
-        @Suppress("DEPRECATION")
-        Bukkit.broadcastMessage(activationMessage)
-    }
-
-    for (activationCommand in booster.activationCommands) {
-        Bukkit.dispatchCommand(
-            Bukkit.getConsoleSender(),
-            activationCommand.replace("%player%", consoleName)
-        )
-    }
-
     if (booster.activationEffects != null) {
         Bukkit.getOnlinePlayers().forEach { target ->
             val dispatched = TriggerData(player = target)
@@ -376,6 +300,20 @@ fun Server.activateQueuedBoosterConsole(booster: Booster, time: Long) {
     )
 
     for (player in Bukkit.getOnlinePlayers()) {
-        PlayableSound.create(plugin.configYml.getSubsection("sounds.activate"))?.playTo(player)
+        activateSound?.playTo(player)
     }
+}
+
+fun OfflinePlayer.isBossBarVisible(): Boolean {
+    return this.profile.read(bossBarVisibilityDataKey) == 1
+}
+
+fun OfflinePlayer.setBossBarVisibility(visible: Boolean) {
+    this.profile.write(bossBarVisibilityDataKey, if (visible) 1 else 0)
+}
+
+fun Player.toggleBossBarVisibility(): Boolean {
+    val nowVisible = !this.isBossBarVisible()
+    this.setBossBarVisibility(nowVisible)
+    return nowVisible
 }

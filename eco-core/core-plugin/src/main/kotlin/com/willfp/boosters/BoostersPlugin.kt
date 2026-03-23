@@ -10,13 +10,11 @@ import com.willfp.boosters.commands.CommandBoosters
 import com.willfp.boosters.libreforge.ConditionIsBoosterActive
 import com.willfp.eco.core.Prerequisite
 import com.willfp.eco.core.command.impl.PluginCommand
-import com.willfp.eco.core.sound.PlayableSound
 import com.willfp.libreforge.SimpleProvidedHolder
 import com.willfp.libreforge.conditions.Conditions
 import com.willfp.libreforge.loader.LibreforgePlugin
 import com.willfp.libreforge.loader.configs.ConfigCategory
 import com.willfp.libreforge.registerGenericHolderProvider
-import com.willfp.libreforge.toDispatcher
 import org.bukkit.Bukkit
 
 internal lateinit var plugin: BoostersPlugin
@@ -55,29 +53,7 @@ class BoostersPlugin : LibreforgePlugin() {
                 }
 
                 if (booster.secondsLeft <= 0) {
-                    for (expiryMessage in booster.expiryMessages) {
-                        Bukkit.broadcastMessage(expiryMessage)
-                    }
-
-                    for (expiryCommand in booster.expiryCommands) {
-                        Bukkit.dispatchCommand(
-                            Bukkit.getConsoleSender(),
-                            expiryCommand.replace("%player%", booster.active?.player?.name ?: "")
-                        )
-                    }
-
-                    Bukkit.getOnlinePlayers().forEach { player ->
-                        val runnable = Runnable {
-                            booster.expiryEffects?.trigger(player.toDispatcher())
-
-                            PlayableSound.create(plugin.configYml.getSubsection("sounds.expire"))
-                                ?.playTo(player)
-                        }
-                        if (Prerequisite.HAS_FOLIA.isMet)
-                            this.scheduler.runTask(player, runnable)
-                        else
-                            runnable.run()
-                    }
+                    booster.runExpiryEffects()
 
                     BoosterBossBar.clearFor(booster)
                     Bukkit.getServer().expireBooster(booster)

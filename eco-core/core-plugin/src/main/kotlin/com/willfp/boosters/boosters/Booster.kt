@@ -11,7 +11,6 @@ import com.willfp.eco.core.items.Items
 import com.willfp.eco.core.items.builder.ItemStackBuilder
 import com.willfp.eco.core.placeholder.PlayerlessPlaceholder
 import com.willfp.eco.core.registry.Registrable
-import com.willfp.eco.util.StringUtils
 import com.willfp.eco.util.formatEco
 import com.willfp.eco.util.savedDisplayName
 import com.willfp.libreforge.Holder
@@ -116,10 +115,23 @@ class Booster(
 
     val bossBarEnabled = config.getBool("bossbar.enabled")
 
-    val bossBarName = if (config.has("bossbar.name")) {
+    private val bossBarNameTemplate = if (config.has("bossbar.name")) {
         config.getFormattedString("bossbar.name")
     } else {
-        name
+        null
+    }
+
+    val bossBarName: String
+        get() = getCurrentBossBarName()
+
+    fun getCurrentBossBarName(): String {
+        return if (bossBarNameTemplate != null) {
+            bossBarNameTemplate
+                .replace("%time_remaining%", getFormattedTimeLeft())
+                .formatEco(formatPlaceholders = true)
+        } else {
+            name
+        }
     }
 
     val bossBarColor = parseBarColor(config.getString("bossbar.color"))
@@ -172,91 +184,6 @@ class Booster(
         ViolationContext(plugin, "Booster $id Increment Effects")
     )
 
-    // * Deprecated options, to be removed in the future * //
-    @Deprecated("Use incrementEffects instead")
-    fun getIncrementMessage(player: Player?): List<String> {
-        val messages = mutableListOf<String>()
-
-        for (string in config.getFormattedStrings(
-            "messages.increment",
-            StringUtils.FormatOption.WITHOUT_PLACEHOLDERS
-        )) {
-            @Suppress("DEPRECATION")
-            messages.add(string.replace("%player%", player?.displayName ?: plugin.langYml.getString("console-displayname")))
-        }
-
-        return messages
-    }
-
-    @Deprecated("Use activationEffects instead")
-    fun getActivationMessages(player: Player?): List<String> {
-        val messages = mutableListOf<String>()
-
-        for (string in config.getFormattedStrings(
-            "messages.activation",
-            StringUtils.FormatOption.WITHOUT_PLACEHOLDERS
-        )) {
-            @Suppress("DEPRECATION")
-            messages.add(string.replace("%player%", player?.displayName ?: plugin.langYml.getString("console-displayname")))
-        }
-
-        return messages
-    }
-
-    @Deprecated("Use expiryEffects instead")
-    @Suppress("DEPRECATION")
-    val expiryMessages: List<String> = config.getFormattedStrings("messages.expiry")
-
-    @Deprecated("Use activationEffects instead")
-    @Suppress("DEPRECATION")
-    val activationCommands: List<String> = config.getFormattedStrings("commands.activation")
-
-    @Deprecated("Use incrementEffects instead")
-    @Suppress("DEPRECATION")
-    val incrementCommands: List<String> = config.getFormattedStrings("commands.increment")
-
-    @Deprecated("Use expiryEffects instead")
-    @Suppress("DEPRECATION")
-    val expiryCommands: List<String> = config.getFormattedStrings("commands.expiry")
-
-    // * Deprecated options, to be removed in the future * //
-    init {
-        if (config.has("commands.activation")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'commands.activation'. Please switch to 'activation-effects'."
-            )
-        }
-
-        if (config.has("messages.activation")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'messages.activation'. Please switch to 'activation-effects'."
-            )
-        }
-
-        if (config.has("commands.increment")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'commands.increment'. Please switch to 'increment-effects'."
-            )
-        }
-
-        if (config.has("messages.increment")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'messages.increment'. Please switch to 'increment-effects'."
-            )
-        }
-
-        if (config.has("commands.expiry")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'commands.expiry'. Please switch to 'expiry-effects'."
-            )
-        }
-
-        if (config.has("messages.expiry")) {
-            plugin.logger.warning(
-                "Booster '$id' uses deprecated 'messages.expiry'. Please switch to 'expiry-effects'."
-            )
-        }
-    }
 
     fun getGuiItem(player: Player): ItemStack {
         return ItemStackBuilder(Items.lookup(config.getString("gui.item")))
@@ -438,6 +365,21 @@ class Booster(
                 }
 
                 outputString
+            }
+        )
+
+        PlaceholderManager.registerPlaceholder(
+            PlayerlessPlaceholder(
+                plugin,
+                "time_remaining",
+            ) {
+                val currentActive = Bukkit.getServer().activeBoosters.firstOrNull()
+
+                if (currentActive == null) {
+                    "00:00:00"
+                } else {
+                    currentActive.booster.getFormattedTimeLeft()
+                }
             }
         )
     }

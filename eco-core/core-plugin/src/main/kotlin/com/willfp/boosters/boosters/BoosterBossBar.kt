@@ -1,5 +1,6 @@
 package com.willfp.boosters.boosters
 
+import com.willfp.boosters.isBossBarVisible
 import org.bukkit.Bukkit
 import org.bukkit.boss.BossBar
 
@@ -37,6 +38,13 @@ object BoosterBossBar {
             val onlinePlayers = Bukkit.getOnlinePlayers().toSet()
 
             for (player in onlinePlayers) {
+                if (!player.isBossBarVisible()) {
+                    if (bar.players.contains(player)) {
+                        bar.removePlayer(player)
+                    }
+                    continue
+                }
+
                 if (!bar.players.contains(player)) {
                     bar.addPlayer(player)
                 }
